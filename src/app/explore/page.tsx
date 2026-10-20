@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { BadgeCheck, FileSignature, Search, Star } from "lucide-react";
 import { Header } from "@/components/header";
+import { BackButton } from "@/components/back-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,6 +110,9 @@ export default function ExplorePage() {
     <>
       <Header />
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+        <div className="mb-2">
+          <BackButton label="Back to home" />
+        </div>
         <div className="mb-8">
           <h1 className="font-display text-3xl font-semibold tracking-tight">Explore reputation</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
