@@ -4,6 +4,7 @@ import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AttestMark } from "@/components/logo";
+import { RecentAttestations } from "@/components/recent-attestations";
 
 const FEATURES = [
   {
@@ -138,6 +139,9 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        {/* ── Recent attestations (live) ── */}
+        <RecentAttestations />
 
         {/* ── How it works ── */}
         <section id="how" className="border-t border-border/60">

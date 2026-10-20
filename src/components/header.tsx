@@ -21,6 +21,7 @@ import { useEffect, useState } from "react";
 const NAV = [
   { href: "/", label: "Home" },
   { href: "/explore", label: "Explore" },
+  { href: "/verify", label: "Verify" },
 ];
 
 export function Header() {

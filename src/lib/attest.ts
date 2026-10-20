@@ -209,6 +209,25 @@ export function allProfiles(): Profile[] {
   return readProfiles();
 }
 
+/** Find an attestation by its signature (or by id). */
+export function findBySignature(sig: string): (Attestation & { subject: string }) | null {
+  const q = sig.trim().toLowerCase();
+  if (!q) return null;
+  for (const p of readProfiles()) {
+    for (const a of p.attestations) {
+      if (a.signature.toLowerCase() === q || a.id.toLowerCase() === q) {
+        return { ...a, subject: p.nametag };
+      }
+    }
+  }
+  return null;
+}
+
+/** True if the string looks like a signed attestation (hex, 128 chars). */
+export function looksLikeSignature(sig: string): boolean {
+  return /^0x[0-9a-fA-F]{128}$/.test(sig.trim());
+}
+
 export function scoreFor(profile: Profile): { avg: number; count: number } {
   if (profile.attestations.length === 0) return { avg: 0, count: 0 };
   const sum = profile.attestations.reduce((acc, a) => acc + a.rating, 0);

@@ -3,32 +3,32 @@
 @tailwind utilities;
 
 /* ============================================================
-   Frani Attest — premium trust/security aesthetic
-   Deep charcoal-navy canvas, crisp geometric display, restrained
-   emerald accent, clear data hierarchy. Authority, not noise.
+   Frani Attest — light "paper" notary aesthetic
+   Warm paper background, deep ink text, emerald seal accent,
+   document-like cards. Verification you can hold.
    ============================================================ */
 
 @layer base {
   :root {
-    --background: 220 25% 6%;         /* #0b0e14 */
-    --foreground: 220 20% 96%;
-    --card: 220 20% 8.5%;
-    --card-foreground: 220 20% 96%;
-    --popover: 220 20% 8.5%;
-    --popover-foreground: 220 20% 96%;
-    --primary: 162 70% 42%;           /* emerald */
-    --primary-foreground: 220 25% 6%;
-    --secondary: 220 16% 13%;
-    --secondary-foreground: 220 20% 96%;
-    --muted: 220 16% 12%;
-    --muted-foreground: 220 10% 60%;
-    --accent: 220 16% 15%;
-    --accent-foreground: 220 20% 96%;
+    --background: 40 25% 97%;          /* warm paper #f9f8f5 */
+    --foreground: 220 15% 12%;         /* deep ink */
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 12%;
+    --primary: 158 70% 32%;            /* deep emerald */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 15% 93%;
+    --secondary-foreground: 220 15% 16%;
+    --muted: 40 12% 94%;
+    --muted-foreground: 220 8% 42%;
+    --accent: 40 15% 92%;
+    --accent-foreground: 220 15% 16%;
     --destructive: 0 60% 45%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 14% 16%;
-    --input: 220 14% 18%;
-    --ring: 162 70% 42%;
+    --border: 40 12% 86%;
+    --input: 40 12% 84%;
+    --ring: 158 70% 32%;
     --radius: 0.625rem;
   }
 
@@ -46,7 +46,7 @@
   }
 
   ::selection {
-    background: hsl(var(--primary) / 0.3);
+    background: hsl(var(--primary) / 0.18);
   }
 
   :focus-visible {
@@ -69,13 +69,13 @@
 
 @layer utilities {
   .glass {
-    background: hsl(var(--card) / 0.72);
+    background: hsl(var(--card) / 0.8);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, #6ee7b7 0%, #10b981 50%, #0d9488 100%);
+    background: linear-gradient(135deg, #059669 0%, #0d9488 60%, #0f766e 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -97,10 +97,10 @@
     padding: 1px;
     background: linear-gradient(
       135deg,
-      hsl(var(--primary) / 0.4),
+      hsl(var(--primary) / 0.35),
       transparent 45%,
       transparent 55%,
-      hsl(var(--primary) / 0.15)
+      hsl(var(--primary) / 0.12)
     );
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
@@ -111,5 +111,13 @@
   }
   .card-glow:hover::before {
     opacity: 1;
+  }
+
+  /* Document-like card */
+  .doc-card {
+    background: #fff;
+    border: 1px solid hsl(var(--border));
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(20, 22, 28, 0.06), 0 8px 24px -12px rgba(20, 22, 28, 0.12);
   }
 }
