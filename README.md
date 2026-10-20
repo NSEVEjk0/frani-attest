@@ -2,8 +2,8 @@
 
 Signed reputation attestations for Unicity testnet2. After a deal, either
 party issues a signed attestation about the other; anyone can look up a
-nametag and read its score and history. Built with Next.js, deployed on
-Vercel.
+nametag and read its score and history. Built with Next.js, shadcn/ui, and a
+premium dark design system. Deployed on Vercel.
 
 Made by **CRYPTFRANI**. Owner / creator: **Itachi**.
 
@@ -24,8 +24,19 @@ No.
 ## Live on-network
 
 - Network: **testnet2**
-- Preview mode: profiles + attestations live in the browser (localStorage)
+- Preview mode: profiles and attestations live in the browser (localStorage)
   until a wallet-api connection is wired in.
+
+## Features
+
+- **Profile search** — look up any nametag or address, see its score and full
+  attestation history.
+- **Issue attestations** — choose a claim, rate 1–5 stars, add a note, and sign
+  with your wallet.
+- **Verifiable by design** — every attestation carries a signature field; the
+  record is append-only.
+- **Refined dark UI** — shadcn/ui components, noise + grid + particle ambient
+  background, soft glows, Space Grotesk / Inter typography.
 
 ## SDK features used
 

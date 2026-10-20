@@ -1,7 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Header } from "@/components/Header";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { BadgeCheck, FileSignature, Search, Star } from "lucide-react";
+import { Header } from "@/components/header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { EmptyState } from "@/components/empty-state";
 import {
   allProfiles,
   getProfile,
@@ -13,11 +30,18 @@ import {
 
 const CLAIMS = ["paid on time", "delivered as described", "good communication", "honest negotiator", "reliable"];
 
-function Stars({ rating }: { rating: number }) {
+function Stars({ rating, className }: { rating: number; className?: string }) {
   return (
-    <span aria-label={`${rating} out of 5`} style={{ color: "var(--primary)", letterSpacing: 2 }}>
-      {"★".repeat(rating)}
-      <span style={{ color: "var(--border)" }}>{"★".repeat(5 - rating)}</span>
+    <span
+      aria-label={`${rating} out of 5`}
+      className={className ?? "inline-flex items-center gap-0.5 text-primary"}
+    >
+      {Array.from({ length: 5 }, (_, i) => (
+        <Star
+          key={i}
+          className={i < rating ? "h-3.5 w-3.5 fill-current" : "h-3.5 w-3.5 text-muted-foreground/30"}
+        />
+      ))}
     </span>
   );
 }
@@ -25,7 +49,22 @@ function Stars({ rating }: { rating: number }) {
 export default function ExplorePage() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Profile | null>(null);
-  const [profiles, setProfiles] = useState<Profile[]>(() => allProfiles());
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [issueOpen, setIssueOpen] = useState(false);
+  const [issueClaim, setIssueClaim] = useState(CLAIMS[0]);
+  const [issueRating, setIssueRating] = useState(5);
+  const [issueNote, setIssueNote] = useState("");
+  const [issuing, setIssuing] = useState(false);
+
+  useEffect(() => {
+    // Small delay so the skeleton reads as a real lookup.
+    const t = setTimeout(() => {
+      setProfiles(allProfiles());
+      setLoading(false);
+    }, 350);
+    return () => clearTimeout(t);
+  }, []);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase().replace(/^@/, "");
@@ -35,224 +74,170 @@ export default function ExplorePage() {
     );
   }, [query, profiles]);
 
-  const [issueOpen, setIssueOpen] = useState(false);
-  const [issueSubject, setIssueSubject] = useState("");
-  const [issueClaim, setIssueClaim] = useState(CLAIMS[0]);
-  const [issueRating, setIssueRating] = useState(5);
-  const [issueNote, setIssueNote] = useState("");
-  const [issueDone, setIssueDone] = useState(false);
-
   function openProfile(p: Profile) {
     setSelected(p);
     setIssueOpen(false);
-    setIssueDone(false);
   }
 
   function handleIssue(e: React.FormEvent) {
     e.preventDefault();
-    const att = issueAttestation({
-      issuer: "you",
-      subject: issueSubject || selected?.nametag || "",
-      claim: issueClaim,
-      rating: issueRating,
-      note: issueNote,
-    });
-    setProfiles(allProfiles());
-    setIssueDone(true);
-    // Show the freshly issued attestation.
-    const updated = getProfile(att.subject);
-    if (updated) setSelected(updated);
-    setIssueSubject("");
-    setIssueNote("");
+    if (!selected) return;
+    setIssuing(true);
+    setTimeout(() => {
+      try {
+        const att = issueAttestation({
+          issuer: "you",
+          subject: selected.nametag,
+          claim: issueClaim,
+          rating: issueRating,
+          note: issueNote,
+        });
+        setProfiles(allProfiles());
+        setSelected(getProfile(att.subject));
+        setIssueOpen(false);
+        setIssueNote("");
+        toast.success("Attestation signed and recorded");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Could not issue attestation");
+      } finally {
+        setIssuing(false);
+      }
+    }, 500);
   }
 
   return (
     <>
       <Header />
-      <main style={{ maxWidth: 1120, margin: "0 auto", padding: "48px 24px 96px" }}>
-        {/* Search */}
-        <div style={{ marginBottom: 28 }}>
-          <h1 style={{ fontSize: "1.6rem", margin: "0 0 16px" }}>Explore reputation</h1>
-          <div style={{ position: "relative" }}>
-            <input
-              className="field"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search a nametag or address… e.g. @alice"
-              aria-label="Search nametag or address"
-              style={{ padding: "14px 18px", fontSize: "1rem" }}
-            />
-          </div>
+      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+        <div className="mb-8">
+          <h1 className="font-display text-3xl font-semibold tracking-tight">Explore reputation</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Search a nametag or address to see its signed attestation history.
+          </p>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24, alignItems: "start" }}>
+        <div className="relative mb-8 max-w-xl">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search @nametag or 0x address…"
+            className="h-12 pl-10 text-base"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,380px)_1fr]">
           {/* Results list */}
-          <div>
-            {results.length === 0 ? (
-              <div className="card" style={{ padding: 32, textAlign: "center", color: "var(--muted-fg)" }}>
-                No profiles match. Try another nametag.
-              </div>
+          <div className="space-y-3">
+            {loading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="rounded-xl border bg-card p-5">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                  </div>
+                  <Skeleton className="mt-3 h-3 w-40" />
+                </div>
+              ))
+            ) : results.length === 0 ? (
+              <EmptyState
+                icon={<Search className="h-8 w-8" />}
+                title="No profiles match"
+                body="Try another nametag or address."
+              />
             ) : (
-              <div style={{ display: "grid", gap: 12 }}>
-                {results.map((p) => {
-                  const { avg, count } = scoreFor(p);
-                  return (
-                    <button
-                      key={p.nametag}
-                      onClick={() => openProfile(p)}
-                      className="card"
-                      style={{
-                        padding: 18,
-                        textAlign: "left",
-                        cursor: "pointer",
-                        width: "100%",
-                        background: selected?.nametag === p.nametag ? "rgba(16,185,129,0.08)" : "var(--card)",
-                        borderColor: selected?.nametag === p.nametag ? "var(--accent)" : "var(--border)",
-                        fontFamily: "inherit",
-                        color: "inherit",
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                        <span style={{ fontWeight: 700, fontSize: "1.05rem" }}>@{p.nametag}</span>
-                        <span className="chip">{count} attestation{count === 1 ? "" : "s"}</span>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <Stars rating={Math.round(avg)} />
-                        <span style={{ color: "var(--muted-fg)", fontSize: "0.9rem" }}>
-                          {avg > 0 ? avg.toFixed(1) : "no score yet"}
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: "ui-monospace, monospace",
-                          fontSize: "0.72rem",
-                          color: "var(--muted-fg)",
-                          marginTop: 8,
-                        }}
-                      >
-                        {p.address.slice(0, 10)}…{p.address.slice(-6)}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              results.map((p) => {
+                const { avg, count } = scoreFor(p);
+                return (
+                  <button
+                    key={p.nametag}
+                    onClick={() => openProfile(p)}
+                    className={
+                      "w-full rounded-xl border bg-card p-5 text-left transition-all duration-200 " +
+                      (selected?.nametag === p.nametag
+                        ? "border-primary/50 ring-1 ring-primary/30"
+                        : "hover:border-primary/30")
+                    }
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-display text-base font-semibold">@{p.nametag}</span>
+                      <Badge variant="secondary" className="font-mono text-[10px]">
+                        {count} attestation{count === 1 ? "" : "s"}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2.5">
+                      <Stars rating={Math.round(avg)} />
+                      <span className="text-xs text-muted-foreground">
+                        {avg > 0 ? avg.toFixed(1) + " / 5" : "no score yet"}
+                      </span>
+                    </div>
+                    <p className="mt-2 font-mono text-[11px] text-muted-foreground">
+                      {p.address.slice(0, 10)}…{p.address.slice(-6)}
+                    </p>
+                  </button>
+                );
+              })
             )}
           </div>
 
           {/* Profile detail */}
           <div>
             {selected ? (
-              <div className="card" style={{ padding: 24 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+              <div className="card-glow rounded-xl border bg-card p-6 sm:p-8">
+                <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <h2 style={{ margin: "0 0 4px", fontSize: "1.3rem" }}>@{selected.nametag}</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="font-display text-xl font-semibold">@{selected.nametag}</h2>
+                      <Badge variant="success" className="gap-1">
+                        <BadgeCheck className="h-3 w-3" /> verified
+                      </Badge>
+                    </div>
                     {(() => {
                       const { avg, count } = scoreFor(selected);
                       return (
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div className="mt-2 flex items-center gap-2.5">
                           <Stars rating={Math.round(avg)} />
-                          <span style={{ color: "var(--muted-fg)", fontSize: "0.9rem" }}>
+                          <span className="text-sm text-muted-foreground">
                             {avg > 0 ? `${avg.toFixed(1)} / 5` : "no score yet"} · {count} attestation{count === 1 ? "" : "s"}
                           </span>
                         </div>
                       );
                     })()}
                   </div>
-                  <span className="chip" style={{ color: "var(--pos)", borderColor: "rgba(52,211,153,0.4)" }}>
-                    ✓ verified
-                  </span>
+                  <Button variant="outline" size="sm" className="gap-2" onClick={() => setIssueOpen(true)}>
+                    <FileSignature className="h-3.5 w-3.5" /> Issue attestation
+                  </Button>
                 </div>
 
-                <div style={{ fontFamily: "ui-monospace, monospace", fontSize: "0.78rem", color: "var(--muted-fg)", marginBottom: 20, overflowWrap: "anywhere" }}>
-                  {selected.address}
-                </div>
+                <p className="mt-4 font-mono text-xs text-muted-foreground break-all">{selected.address}</p>
 
-                <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
-                  <button className="btn btn-green btn-sm" onClick={() => { setIssueOpen((v) => !v); setIssueDone(false); }}>
-                    {issueOpen ? "Cancel" : "+ Issue attestation"}
-                  </button>
-                </div>
+                <Separator className="my-6" />
 
-                {issueOpen ? (
-                  <form onSubmit={handleIssue} style={{ marginBottom: 24, padding: 16, border: "1px solid var(--border)", borderRadius: 14, background: "var(--muted)" }}>
-                    <div style={{ fontSize: "0.85rem", fontWeight: 700, marginBottom: 12 }}>
-                      Issue a signed attestation for @{selected.nametag}
-                    </div>
-                    <select className="field" value={issueClaim} onChange={(e) => setIssueClaim(e.target.value)} style={{ marginBottom: 10 }} aria-label="Claim">
-                      {CLAIMS.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                    <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
-                      <span style={{ fontSize: "0.9rem" }}>Rating:</span>
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => setIssueRating(n)}
-                          aria-label={`${n} stars`}
-                          style={{
-                            background: n <= issueRating ? "var(--primary)" : "transparent",
-                            border: "1px solid var(--border)",
-                            color: n <= issueRating ? "var(--on-primary)" : "var(--muted-fg)",
-                            borderRadius: 8,
-                            width: 34,
-                            height: 34,
-                            cursor: "pointer",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-                    <textarea
-                      className="field"
-                      value={issueNote}
-                      onChange={(e) => setIssueNote(e.target.value)}
-                      placeholder="Note (optional)"
-                      rows={2}
-                      style={{ marginBottom: 12 }}
-                      aria-label="Note"
-                    />
-                    <button type="submit" className="btn btn-green btn-sm" style={{ width: "100%" }}>
-                      Sign & issue
-                    </button>
-                    {issueDone ? (
-                      <p style={{ color: "var(--pos)", fontSize: "0.85rem", margin: "10px 0 0", textAlign: "center" }}>
-                        ✓ Attestation signed and recorded.
-                      </p>
-                    ) : null}
-                  </form>
-                ) : null}
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Attestation history
+                </h3>
 
-                {/* Attestation history */}
-                <div style={{ fontSize: "0.78rem", color: "var(--muted-fg)", marginBottom: 10 }}>
-                  ATTESTATION HISTORY
-                </div>
                 {selected.attestations.length === 0 ? (
-                  <p style={{ color: "var(--muted-fg)", fontSize: "0.9rem" }}>
+                  <p className="mt-4 text-sm text-muted-foreground">
                     No attestations yet — be the first to vouch.
                   </p>
                 ) : (
-                  <div style={{ display: "grid", gap: 12 }}>
+                  <div className="mt-4 space-y-4">
                     {selected.attestations.map((a: Attestation) => (
-                      <div key={a.id} style={{ padding: 14, border: "1px solid var(--border)", borderRadius: 12, background: "var(--muted)" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                          <span style={{ fontWeight: 600, fontSize: "0.92rem" }}>@{a.issuer}</span>
+                      <div key={a.id} className="rounded-lg border bg-background/40 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-semibold">@{a.issuer}</span>
                           <Stars rating={a.rating} />
                         </div>
-                        <div style={{ fontSize: "0.95rem", marginBottom: 4 }}>
-                          <span className="green-grad" style={{ fontWeight: 700 }}>{a.claim}</span>
-                        </div>
+                        <p className="mt-2 text-sm font-medium text-primary">{a.claim}</p>
                         {a.note ? (
-                          <div style={{ color: "var(--muted-fg)", fontSize: "0.88rem", marginBottom: 6 }}>{a.note}</div>
+                          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{a.note}</p>
                         ) : null}
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: "0.74rem", color: "var(--muted-fg)" }}>
-                            {new Date(a.at).toLocaleDateString()}
+                        <div className="mt-3 flex items-center justify-between gap-3">
+                          <span className="text-[11px] text-muted-foreground">
+                            {new Date(a.at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
                           </span>
-                          <span style={{ fontFamily: "ui-monospace, monospace", fontSize: "0.68rem", color: "var(--muted-fg)", overflowWrap: "anywhere" }}>
+                          <span className="font-mono text-[10px] text-muted-foreground">
                             {a.signature.slice(0, 14)}…{a.signature.slice(-6)}
                           </span>
                         </div>
@@ -262,14 +247,91 @@ export default function ExplorePage() {
                 )}
               </div>
             ) : (
-              <div className="card" style={{ padding: 40, textAlign: "center", color: "var(--muted-fg)" }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }} aria-hidden="true">◎</div>
-                Select a profile to see its full attestation history.
-              </div>
+              <EmptyState
+                icon={<BadgeCheck className="h-8 w-8" />}
+                title="Select a profile"
+                body="Choose a nametag from the list to see its full attestation history."
+              />
             )}
           </div>
         </div>
       </main>
+
+      <Dialog open={issueOpen} onOpenChange={setIssueOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Issue a signed attestation</DialogTitle>
+            <DialogDescription>
+              For @{selected?.nametag} — signed by your wallet.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleIssue} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="claim">Claim</Label>
+              <div className="flex flex-wrap gap-2">
+                {CLAIMS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setIssueClaim(c)}
+                    className={
+                      "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors " +
+                      (issueClaim === c
+                        ? "border-primary/60 bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:border-primary/30")
+                    }
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Rating</Label>
+              <div className="flex items-center gap-1.5">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setIssueRating(n)}
+                    aria-label={`${n} stars`}
+                    className="rounded-md p-1 transition-transform hover:scale-110"
+                  >
+                    <Star
+                      className={
+                        n <= issueRating
+                          ? "h-6 w-6 fill-primary text-primary"
+                          : "h-6 w-6 text-muted-foreground/30"
+                      }
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="note">Note (optional)</Label>
+              <Textarea
+                id="note"
+                placeholder="What happened?"
+                rows={3}
+                value={issueNote}
+                onChange={(e) => setIssueNote(e.target.value)}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <Button type="button" variant="ghost" onClick={() => setIssueOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={issuing}>
+                {issuing ? "Signing…" : "Sign & issue"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
