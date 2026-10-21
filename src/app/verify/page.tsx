@@ -38,13 +38,20 @@ export default function VerifyPage() {
       setChecked(true);
       return;
     }
-    const att = await verifySignature(q);
-    if (att) {
-      setResult({ found: true, att });
-    } else {
+    try {
+      const att = await verifySignature(q);
+      if (att) {
+        setResult({ found: true, att });
+      } else {
+        setResult({
+          found: false,
+          reason: "No matching attestation found in the registry. It may have been issued elsewhere.",
+        });
+      }
+    } catch (err) {
       setResult({
         found: false,
-        reason: "No matching attestation found in the registry. It may have been issued elsewhere.",
+        reason: err instanceof Error ? err.message : "Could not reach the registry. Try again.",
       });
     }
     setChecked(true);

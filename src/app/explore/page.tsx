@@ -85,9 +85,16 @@ export default function ExplorePage() {
     );
   }, [query, profiles]);
 
-  function openProfile(p: Profile) {
-    setSelected(p);
+  async function openProfile(p: Profile) {
+    setSelected({ ...p, attestations: p.attestations ?? [] });
     setIssueOpen(false);
+    // Load the profile's attestations from the shared registry.
+    try {
+      const atts = await fetchAttestations({ subject: p.nametag });
+      setSelected((prev) => (prev?.nametag === p.nametag ? { ...prev, attestations: atts } : prev));
+    } catch {
+      /* keep empty attestations */
+    }
   }
 
   async function handleIssue(e: React.FormEvent) {
@@ -247,13 +254,13 @@ export default function ExplorePage() {
                   Attestation history
                 </h3>
 
-                {selected.attestations.length === 0 ? (
+                {(selected.attestations ?? []).length === 0 ? (
                   <p className="mt-4 text-sm text-muted-foreground">
                     No attestations yet — be the first to vouch.
                   </p>
                 ) : (
                   <div className="mt-4 space-y-4">
-                    {selected.attestations.map((a: Attestation) => (
+                    {(selected.attestations ?? []).map((a: Attestation) => (
                       <div key={a.id} className="rounded-lg border bg-background/40 p-4">
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-sm font-semibold">@{a.issuer}</span>
