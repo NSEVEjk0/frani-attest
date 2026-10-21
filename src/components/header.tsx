@@ -26,7 +26,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AttestWordmark } from "@/components/logo";
-import { connectWallet, currentWallet, disconnectWallet, restoreWallet, type Wallet } from "@/lib/attest";
+import { PrivateKeyDialog } from "@/components/private-key-dialog";
+import { connectWallet, copyPrivateKey, currentWallet, disconnectWallet, restoreWallet, type Wallet } from "@/lib/attest";
 
 const NAV = [
   { href: "/", label: "Home" },
@@ -41,6 +42,7 @@ export function Header() {
   const [mnemonic, setMnemonic] = useState("");
   const [busy, setBusy] = useState(false);
   const [freshMnemonic, setFreshMnemonic] = useState("");
+  const [keyOpen, setKeyOpen] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -125,6 +127,7 @@ export function Header() {
                   {wallet.address}
                 </div>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setKeyOpen(true)}>Copy private key</DropdownMenuItem>
                 <DropdownMenuItem onClick={handleDisconnect}>Disconnect</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -213,6 +216,8 @@ export function Header() {
           )}
         </DialogContent>
       </Dialog>
+
+      <PrivateKeyDialog open={keyOpen} onOpenChange={setKeyOpen} onReveal={copyPrivateKey} />
     </>
   );
 }

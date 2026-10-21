@@ -12,6 +12,7 @@ import {
   connectUnicityWallet,
   disconnectUnicityWallet,
   generateFreshMnemonic,
+  getPrivateKey,
   isValidMnemonic,
   loadUnicityWallet,
   readStoredMnemonic,
@@ -102,6 +103,11 @@ export function disconnectWallet() {
     /* ignore */
   }
   disconnectUnicityWallet();
+}
+
+/** Copy the wallet's private key (for real Unicity wallets). */
+export function copyPrivateKey(): string {
+  return getPrivateKey();
 }
 
 /** Sign a canonical attestation message with the wallet key. */
