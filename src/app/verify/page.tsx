@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { findBySignature, looksLikeSignature, type Attestation } from "@/lib/attest";
+import { verifySignature, looksLikeSignature, type Attestation } from "@/lib/attest";
 
 interface Result {
   found: boolean;
@@ -22,7 +22,7 @@ export default function VerifyPage() {
   const [result, setResult] = useState<Result | null>(null);
   const [checked, setChecked] = useState(false);
 
-  function handleVerify(e: React.FormEvent) {
+  async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
     const q = input.trim();
     if (!q) {
@@ -38,7 +38,7 @@ export default function VerifyPage() {
       setChecked(true);
       return;
     }
-    const att = findBySignature(q);
+    const att = await verifySignature(q);
     if (att) {
       setResult({ found: true, att });
     } else {

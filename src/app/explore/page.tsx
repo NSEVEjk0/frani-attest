@@ -21,10 +21,12 @@ import {
 } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/empty-state";
 import {
-  allProfiles,
-  getProfile,
+  fetchProfiles,
+  fetchAttestations,
   issueAttestation,
   scoreFor,
+  signAttestationMessage,
+  currentWallet,
   type Attestation,
   type Profile,
 } from "@/lib/attest";
@@ -59,12 +61,20 @@ export default function ExplorePage() {
   const [issuing, setIssuing] = useState(false);
 
   useEffect(() => {
-    // Small delay so the skeleton reads as a real lookup.
-    const t = setTimeout(() => {
-      setProfiles(allProfiles());
-      setLoading(false);
-    }, 350);
-    return () => clearTimeout(t);
+    let cancelled = false;
+    (async () => {
+      try {
+        const profiles = await fetchProfiles();
+        if (!cancelled) setProfiles(profiles);
+      } catch {
+        if (!cancelled) setProfiles([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const results = useMemo(() => {
@@ -80,30 +90,46 @@ export default function ExplorePage() {
     setIssueOpen(false);
   }
 
-  function handleIssue(e: React.FormEvent) {
+  async function handleIssue(e: React.FormEvent) {
     e.preventDefault();
     if (!selected) return;
+    const wallet = currentWallet();
+    if (!wallet) {
+      toast.error("Connect a wallet to issue attestations");
+      return;
+    }
     setIssuing(true);
-    setTimeout(() => {
-      try {
-        const att = issueAttestation({
-          issuer: "you",
-          subject: selected.nametag,
-          claim: issueClaim,
-          rating: issueRating,
-          note: issueNote,
-        });
-        setProfiles(allProfiles());
-        setSelected(getProfile(att.subject));
-        setIssueOpen(false);
-        setIssueNote("");
-        toast.success("Attestation signed and recorded");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Could not issue attestation");
-      } finally {
-        setIssuing(false);
+    try {
+      const signature = signAttestationMessage(wallet, {
+        issuer: wallet.address,
+        subject: selected.nametag,
+        claim: issueClaim,
+        rating: issueRating,
+      });
+      const att = await issueAttestation({
+        issuer: wallet.address,
+        subject: selected.nametag,
+        claim: issueClaim,
+        rating: issueRating,
+        note: issueNote,
+        signature,
+      });
+      // Refresh the selected profile's attestations from the registry.
+      const all = await fetchProfiles();
+      const updated = all.find((p) => p.nametag === att.subject);
+      if (updated) {
+        const atts = await fetchAttestations({ subject: updated.nametag });
+        setSelected({ ...updated, attestations: atts });
+        setProfiles(all);
       }
-    }, 500);
+      setIssueOpen(false);
+      setIssueNote("");
+      toast.success("Attestation signed and recorded");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not issue attestation");
+    } finally {
+      setIssuing(false);
+    }
   }
 
   return (

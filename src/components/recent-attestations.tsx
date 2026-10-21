@@ -3,21 +3,22 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, BadgeCheck } from "lucide-react";
-import { allProfiles, type Attestation } from "@/lib/attest";
+import { fetchAttestations, type Attestation } from "@/lib/attest";
 
-/** Recent attestations across all profiles, newest first. */
+/** Recent attestations from the shared registry, newest first. */
 export function RecentAttestations() {
-  const [items, setItems] = useState<Array<Attestation & { subject: string }>>([]);
+  const [items, setItems] = useState<Attestation[]>([]);
 
   useEffect(() => {
-    const all: Array<Attestation & { subject: string }> = [];
-    for (const p of allProfiles()) {
-      for (const a of p.attestations) {
-        all.push({ ...a, subject: p.nametag });
-      }
-    }
-    all.sort((a, b) => (a.at < b.at ? 1 : -1));
-    setItems(all.slice(0, 5));
+    let cancelled = false;
+    fetchAttestations()
+      .then((all) => {
+        if (!cancelled) setItems(all.slice(0, 5));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (items.length === 0) return null;
@@ -49,7 +50,7 @@ export function RecentAttestations() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm">
-                  <span className="font-semibold">@{a.issuer}</span>
+                  <span className="font-semibold">@{a.issuer.slice(0, 12)}…</span>
                   <span className="text-muted-foreground"> attested </span>
                   <span className="font-medium text-primary">{a.claim}</span>
                   <span className="text-muted-foreground"> for </span>
