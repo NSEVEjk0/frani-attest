@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* System fonts (avoids next/font fetch failures in build environments) */
+:root {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
 /* ============================================================
    Frani Attest — light "paper" notary aesthetic
    Warm paper background, deep ink text, emerald seal accent,
